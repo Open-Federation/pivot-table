@@ -1,0 +1,66 @@
+[
+  {
+    "name": "pivotData(options)",
+    "desc": "pivotData",
+    "maintainer": "",
+    "props": [
+      {
+        "name": "options",
+        "desc": "配置",
+        "type": "object",
+        "default": "-",
+        "version": "-"
+      }
+    ]
+  },
+  {
+    "name": "options",
+    "props": [{
+      "name": "dimensionsConfig",
+      "desc": "维度配置",
+      "type": "array"
+      },
+      {
+        "name": "measuresConfig",
+        "desc": "指标配置",
+      "type": "array"
+      },
+      {
+        "name": "dataSource",
+        "desc": "实体数据",
+      "type": "array"
+      },
+      {
+        "name": "rows",
+        "desc": "行配置",
+      "type": "string[]"
+      },
+      {
+        "name": "cols",
+        "desc": "列配置",
+      "type": "string[]"
+      }
+    ]
+    
+  },
+  {
+    "name": "dimensionsConfig",
+    "props": [{
+      "name": "dataIndex",
+      "desc": "字段"
+    }, {
+      "name": "title",
+      "desc": "名称"
+    }]
+  },
+  {
+    "name": "measuresConfig",
+    "props": [{
+      "name": "dataIndex",
+      "desc": "字段"
+    }, {
+      "name": "title",
+      "desc": "名称"
+    }]
+  }
+]
