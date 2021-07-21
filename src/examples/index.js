@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import Demo from './demo';
 import reportWebVitals from './reportWebVitals';
-
+import 'antd/dist/antd.css'
 ReactDOM.render(
   <Demo />,
   document.getElementById('root')
