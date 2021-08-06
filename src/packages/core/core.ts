@@ -13,7 +13,7 @@ class Node{
   children: Map<string, Node>;
   parentData: Node|undefined;
 
-  constructor(key: string, value: any, type = 'dimension', parentData ?:Node){
+  constructor(key, value, type = 'dimension', parentData ?:Node){
     this.type = type;
     this.key = key;
     this.value = value;
@@ -21,10 +21,10 @@ class Node{
     this.parentData = parentData;
   }
 
-  toJsonTree(customNode: any){
+  toJsonTree(customNode){
     const json = {};
-    const dfs = (context:any, data:any, parentData = null)=>{
-      customNode = customNode || ((context:any)=>{
+    const dfs = (context, data, parentData = null)=>{
+      customNode = customNode || ((context)=>{
         return {
           key : context.key,
           value : context.value,
@@ -37,7 +37,7 @@ class Node{
       }
       data.children = [...context.children.values()];
       if(data.children && data.children.length > 0){
-        data.children = data.children.map((child:any)=>{
+        data.children = data.children.map((child)=>{
           return dfs(child, {}, data)
         })
       }
@@ -89,7 +89,9 @@ class FieldConfig{
   add(data: FieldType| Array<FieldType>){
     if(Array.isArray(data)){
       data.forEach(item=>{
-        this._data.set(item.dataIndex, item);
+        this._data.set(item.dataIndex, {
+          ...item
+        });
       })
     }else this._data.set(data.dataIndex, data)
   }
@@ -113,7 +115,12 @@ function parseFields(options : PivotOptionsType){
     cols
   } = options;
   const fieldConfigInst = new FieldConfig();
-  fieldConfigInst.add(dimensionsConfig);
+  fieldConfigInst.add(dimensionsConfig.map(item=> {
+    return {
+      type: 'dimension',
+      ...item
+    }
+  }));
   fieldConfigInst.add(measuresConfig);
 
   const dataMap = {};
@@ -224,7 +231,6 @@ function toTreeData(data, dimensions, measures, type = 'column'){
       
     }
   })
-
   return tree;
 }
 

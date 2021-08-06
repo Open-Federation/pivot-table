@@ -77,6 +77,7 @@ const toTable = (PivotOptions: PivotOptionsType)=>(DataCollection: DataCollectio
   })
 
   const dataSource = rowData.toTableData();
+
   dataSource.forEach((record, index) => {
     if(!record)return;
     record.key = record.$key ? record.$key.join('/') : (index + '');
@@ -91,8 +92,9 @@ const toTable = (PivotOptions: PivotOptionsType)=>(DataCollection: DataCollectio
       const { dimensions } = columnConfig;
       if(!dimensions)return;
       const columnRecord = dimensions.reduce((prev, curr) => {
-        if (getFieldConfig(curr[0])) {
-          measureKey =(getFieldConfig(curr[0]) as FieldType).dataIndex;
+        let fieldConfig = (getFieldConfig(curr[0]) as FieldType) ;
+        if (!measureKey && fieldConfig && fieldConfig.type !== 'dimension') {
+          measureKey =fieldConfig.dataIndex;
         }
         prev[curr[0]] = curr[1];
         return prev;
@@ -116,6 +118,14 @@ const toTable = (PivotOptions: PivotOptionsType)=>(DataCollection: DataCollectio
             ...columnRecord
           },
           measureKey
+        )
+      }else if(record.$measure){
+        record[columnConfig.dataIndex] = getValue(
+          {
+            ...record,
+            ...columnRecord
+          },
+          record.$measure
         )
       }
     })
