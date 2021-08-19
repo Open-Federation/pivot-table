@@ -63,11 +63,15 @@ const toTable = (PivotOptions: PivotOptionsType)=>(DataCollection: DataCollectio
     }
 
     if (!node.children || node.children.size === 0) {
-      maxDeepLevelColumns.push(column)
+      if(node.key !== RootName){
+        maxDeepLevelColumns.push(column)
+      }
+      
     }
 
     return column;
   }).children;
+
 
   if (treeColumns.length === 0) {
     treeColumns.push({
@@ -92,8 +96,7 @@ const toTable = (PivotOptions: PivotOptionsType)=>(DataCollection: DataCollectio
     record.key = record.$key ? record.$key.join('/') : (index + '');
     let measureKey: string|null = null;
     maxDeepLevelColumns.forEach(columnConfig => {
-      const { dimensions } = columnConfig;
-      if(!dimensions)return;
+      const { dimensions = [] } = columnConfig;
       const columnRecord = dimensions.reduce((prev, curr) => {
         if(curr[0] === '$measure'){
           let fieldConfig = (getFieldConfig(curr[1]) as FieldType) ;
@@ -111,7 +114,7 @@ const toTable = (PivotOptions: PivotOptionsType)=>(DataCollection: DataCollectio
         return;
       }
 
-      let tableRecord = record[columnConfig.dataIndex] = getValue(
+      let tableRecord = getValue(
         {
           ...record,
           ...columnRecord
@@ -124,45 +127,6 @@ const toTable = (PivotOptions: PivotOptionsType)=>(DataCollection: DataCollectio
           record[columnConfig.dataIndex + key] = tableRecord[key];
         }
       })
-
-      // if (columnConfig.dataIndex === '$measureValue' && record['$measure']) {
-      //     let tableRecord = getValue({
-      //       ...record,
-      //       ...columnRecord
-      //     });
-      //     record[columnConfig.dataIndex] = tableRecord[record['$measure']];
-      //     derivativeMeasuresConfig.forEach(derivativeInfo=>{
-      //       let key = record['$measure'] + '_' + derivativeInfo.suffix;
-      //       if(typeof tableRecord[key] !== 'undefined'){
-      //         record[columnConfig.dataIndex + '_' + key] = tableRecord[key];
-      //       }
-      //     })
-      // } 
-      
-      // else if(measureKey){
-      //   let tableRecord = record[columnConfig.dataIndex] = getValue(
-      //     {
-      //       ...record,
-      //       ...columnRecord
-      //     }
-      //   )
-      //   record[columnConfig.dataIndex] = tableRecord[measureKey];
-      //   derivativeMeasuresConfig.forEach(derivativeInfo=>{
-      //     let key = measureKey + '_' + derivativeInfo.suffix;
-      //     if(typeof tableRecord[key] !== 'undefined'){
-      //       record[columnConfig.dataIndex + '_' + key] = tableRecord[key];
-      //     }
-      //   })
-        
-      // }else if(record.$measure){
-      //   let tableRecord = record[columnConfig.dataIndex] = getValue(
-      //     {
-      //       ...record,
-      //       ...columnRecord
-      //     }
-      //   )
-      //   record.$measure
-      // }
     })
 
   })
