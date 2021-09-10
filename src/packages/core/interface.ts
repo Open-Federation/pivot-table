@@ -19,7 +19,8 @@ export interface DataRecordType{
 
 export interface DerivativeInfo{
   suffix: string,
-  title: string
+  title: string,
+  customDataFunc?: <T, U extends any[]>(record:T,dataIndex:string,head:U,config:DerivativeInfo) => void,
 }
 
 export interface PivotOptionsType{
@@ -28,18 +29,21 @@ export interface PivotOptionsType{
   dataSource: Array<DataRecordType>,
   rows: Array<string>,
   cols: Array<string>,
-  derivativeMeasuresConfig: Array<DerivativeInfo>
+  derivativeMeasuresConfig: Array<DerivativeInfo>,
+  treeTransformConfig?: string[]
 }
 
 
 //混合了维度和指标
 export interface FieldType extends DimensionFieldType, MeasureFieldType{
-  dimensions?: any
+  dimensions?: any,
+  analysisType?:string,
+  children?:FieldType[]
 }
 
 
 export interface getValueType{
-  (dimensionData: string[], measureKey?: string): any;
+  <T>(dimensionData: T,anotherDimensionData?:T, measureKey?: string): any;
 }
 
 export interface getFieldConfigType{

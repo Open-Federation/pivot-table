@@ -5,19 +5,19 @@ import {
   getFieldConfigType,
   FieldType
 } from './interface'
-import {RootName} from './constant'
+import {RootName, measureValueDataIndex, measureDataIndex, measureNameDataIndex, dimension, measure} from './constant'
 
 
 class Node {
-  type: string;
+  analysisType: string;
   key: string;
   value: any;
   children: Map<string, Node>;
   parentData: Node | undefined;
   extra: any;
 
-  constructor(key, value, type = 'dimension', parentData?: Node, extra?: any) {
-    this.type = type;
+  constructor(key, value, analysisType = dimension, parentData?: Node, extra?: any) {
+    this.analysisType = analysisType;
     this.key = key;
     this.value = value;
     this.children = new Map();
@@ -32,7 +32,7 @@ class Node {
         return {
           key: context.key,
           value: context.value,
-          type: context.type,
+          analysisType: context.analysisType,
           extra: context.extra
         }
       })
@@ -120,12 +120,12 @@ function parseFields(options: PivotOptionsType) {
     dimensionsConfig,
     measuresConfig,
     rows,
-    cols
+    cols,
   } = options;
   const fieldConfigInst = new FieldConfig();
   fieldConfigInst.add(dimensionsConfig.map(item => {
     return {
-      type: 'dimension',
+      analysisType: dimension,
       ...item
     }
   }));
@@ -138,9 +138,12 @@ function parseFields(options: PivotOptionsType) {
     }),
   ]
 
-  function getKey(record) {
+  function getKey<T>(record:T, anotherRecord?:T):string {
     return dimensionKeys.map(dataIndex => {
-      return dataIndex + '_' + record[dataIndex]
+      if(anotherRecord && Object.prototype.hasOwnProperty.call(anotherRecord,dataIndex)){
+        return dataIndex + '_' + anotherRecord[dataIndex];
+      }
+      return dataIndex + '_' +  record[dataIndex];
     }).join('/')
   }
 
@@ -150,21 +153,22 @@ function parseFields(options: PivotOptionsType) {
   })
 
   fieldConfigInst.add({
-    type: '$measureValue',
-    dataIndex: '$measureValue',
+    analysisType: measure,
+    dataIndex: measureValueDataIndex,
     title: '指标值',
   });
 
   fieldConfigInst.add({
-    dataIndex: '$measure',
+    dataIndex: measureDataIndex,
+    analysisType: dimension,
     title: 'measures',
     extraField: {
-      dataIndex: '$measure_name',
+      dataIndex: measureNameDataIndex,
       title: '指标列表'
     }
   })
-  const getValue = <T>(dimensionData: string[], measureKey?: string): T => {
-    const rawData = dataMap[getKey(dimensionData)];
+  const getValue = <T>(dimensionData: T, anotherDimensionData?:T,measureKey?: string): T => {
+    const rawData = dataMap[getKey(dimensionData,anotherDimensionData)];
     if (measureKey) {
       return rawData[measureKey]
     }
@@ -191,13 +195,11 @@ function pivotDataCore(options: PivotOptionsType): DataCollectionType {
     measuresConfig,
     dataSource,
     rows,
-    cols
+    cols,
   } = options;
   const { getValue, getFieldConfig } = parseFields(options);
-
-
   function toTreeData(data, dimensions, measures, enableChangeOrder: boolean = true) {
-    let measureIndex = dimensions.indexOf('$measure');
+    let measureIndex = dimensions.indexOf(measureDataIndex);
     let isNeedChangeOrder;
     const originDimensions = [...dimensions]
     if (enableChangeOrder) {
@@ -209,7 +211,7 @@ function pivotDataCore(options: PivotOptionsType): DataCollectionType {
 
 
 
-    const tree = new Node(RootName, RootName, 'dimension')
+    const tree = new Node(RootName, RootName, dimension)
 
     const getMapKey = (key, value) => {
       return key + '-' + value;
@@ -217,6 +219,7 @@ function pivotDataCore(options: PivotOptionsType): DataCollectionType {
 
     data.forEach(record => {
       let node = tree;
+      const groupKey = 'group_name';
       for (let i = 0; i < dimensions.length; i++) {
         const key = dimensions[i];
         const fieldConfig = getFieldConfig(key) as FieldType;
@@ -226,25 +229,25 @@ function pivotDataCore(options: PivotOptionsType): DataCollectionType {
           extraField = fieldConfig.extraField.dataIndex;
         }
         const value = record[dimensions[i]];
-        if (key === '$measure' && enableChangeOrder) {  //指标特殊处理
+        if (key === measureDataIndex && enableChangeOrder) {  //指标特殊处理
           measures.forEach(measureConfig => {
             const extra = {};
-            const key = '$measure';
+            const key = measureDataIndex;
             const value = measureConfig.dataIndex;
             const mapKey = getMapKey(key, value);
             if (!node.children.has(mapKey)) {
               if(extraField){
                 extra[extraField] = measureConfig.title;
+                measureConfig[groupKey] && (extra[groupKey] = measureConfig[groupKey]) 
               }
-              
-              const childNode = new Node(key, value, 'measure', node, extra);
+              const childNode = new Node(key, value, measure, node, extra);
               node.children.set(mapKey, childNode);
             }
           })
           return;
         }
 
-        if (key === '$measureValue') {
+        if (key === measureValueDataIndex) {
           return;
         }
 
@@ -254,10 +257,16 @@ function pivotDataCore(options: PivotOptionsType): DataCollectionType {
         }
 
         const mapKey = getMapKey(key, value);
+        let analysisType = dimension
         if (node.children.has(mapKey)) {
           node = <Node>node.children.get(mapKey);
         } else {
-          const childNode = new Node(key, value, 'dimension', node, extra);
+          if(key === measureDataIndex){
+            analysisType = measure;
+            const measuresConfig = getFieldConfig(value) as FieldType;
+            measuresConfig[groupKey] && (extra[groupKey] = measuresConfig[groupKey]) 
+          }
+          const childNode = new Node(key, value, analysisType , node, extra);
           node.children.set(mapKey, childNode);
           node = childNode;
         }
@@ -274,7 +283,6 @@ function pivotDataCore(options: PivotOptionsType): DataCollectionType {
 
   const rowData = toTreeData(dataSource, rows, measuresConfig);
   const columnData = toTreeData(dataSource, cols, measuresConfig);
-
   return {
     rowData: rowData,
     columnData: columnData,
